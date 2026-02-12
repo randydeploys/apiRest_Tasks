@@ -68,6 +68,8 @@ export const create = async (req, res) => {
             user: req.user.userId
         });
 
+        const io = req.app.get('io');
+        io.to(req.user.userId).emit('taskCreated', task);
 
         return res.status(201).json({
             success: true,

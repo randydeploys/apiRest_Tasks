@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Socket.io</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>Test Socket.io</h1>
+  <div id="logs"></div>
+
+  <script>
+    const socket = io('http://localhost:3001');
+
+    socket.on('connect', () => {
+      log('✅ Connecté : ' + socket.id);
+
+      // Rejoindre la room de ton userId (copie-le depuis MongoDB)
+      socket.emit('joinRoom', '698df467262ec33e42561d4a');
+    });
+
+    socket.on('taskCreated', (task) => {
+      log('🆕 Tâche créée : ' + task.title);
+    });
+
+    socket.on('taskUpdated', (task) => {
+      log('✏️ Tâche modifiée : ' + task.title);
+    });
+
+    socket.on('taskDeleted', (data) => {
+      log('🗑️ Tâche supprimée : ' + data.id);
+    });
+
+    socket.on('disconnect', () => {
+      log('🔴 Déconnecté');
+    });
+
+    function log(msg) {
+      document.getElementById('logs').innerHTML += '<p>' + msg + '</p>';
+      console.log(msg);
+    }
+  </script>
+</body>
+</html>
