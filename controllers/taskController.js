@@ -5,8 +5,46 @@ import { createTaskSchema, updateTaskSchema } from "../validators/task.validator
 
 export const getAll = async (req, res) => {
     try {
-        const tasks = await Task.find({ user: req.user.userId });
-        res.json(tasks);
+        // 1. FILTRES
+        const filter = { user: req.user.userId };
+
+        if (req.query.priority) {
+            filter.priority = req.query.priority;
+        }
+        if (req.query.completed !== undefined) {
+            filter.completed = req.query.completed === 'true';
+        }
+
+        // 2. TRI
+        const sortField = req.query.sort || 'createdAt';
+        const sortOrder = req.query.order === 'asc' ? 1 : -1;
+
+
+        // 3. PAGINATION
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 1;
+        const skip = (page - 1) * limit;
+
+        // 4. REQUÊTE
+        const [tasks, total] = await Promise.all([
+            Task.find(filter)
+                .sort({ [sortField]: sortOrder })
+                .skip(skip)
+                .limit(limit),
+            Task.countDocuments(filter)
+        ]);
+
+        // 5. RÉPONSE
+        res.json({
+            data: tasks,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -25,10 +63,10 @@ export const create = async (req, res) => {
         }
 
 
-    const task = await Task.create({
-      ...result.data,
-      user: req.user.userId
-    });
+        const task = await Task.create({
+            ...result.data,
+            user: req.user.userId
+        });
 
 
         return res.status(201).json({
@@ -99,18 +137,18 @@ export const update = async (req, res) => {
     }
 };
 export const deleteTask = async (req, res) => {
-  try {
-    const { error, message, task } = await findTaskAndCheckOwner(
-      req.params.id,
-      req.user.userId
-    );
-    if (error) return res.status(error).json({ message });
+    try {
+        const { error, message, task } = await findTaskAndCheckOwner(
+            req.params.id,
+            req.user.userId
+        );
+        if (error) return res.status(error).json({ message });
 
-    await task.deleteOne(); // ← on réutilise le document directement
-    res.json({ message: "Tâche supprimée" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+        await task.deleteOne(); // ← on réutilise le document directement
+        res.json({ message: "Tâche supprimée" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 export default { getAll, create, update, deleteTask, getById };
